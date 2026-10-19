@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Habitat</title>
+<meta name="description" content="Find jobs whose usual work environment fits what you can handle. A starting point for career exploration. Not a test or a diagnosis.">
+<style>
+  /* Calm, high-contrast palette. Text/background pairs meet WCAG AA (most meet AAA). */
+  :root {
+    --bg: #f7f5ef;
+    --surface: #ffffff;
+    --text: #1d1d1b;
+    --muted: #4a4a45;
+    --border: #8a877c;
+    --accent: #2f5d50;        /* calm green, 7.4:1 on white */
+    --accent-text: #ffffff;
+    --focus: #1a4fa0;
+    --warn-bg: #fff4e0;
+    --warn-border: #8a5a00;
+    --radius: 10px;
+    --space: 1.25rem;
+    --line: 1.6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not([data-theme="low"]) {
+      --bg: #1b1d1c;
+      --surface: #252826;
+      --text: #f0efe9;
+      --muted: #c9c7bd;
+      --border: #8f8c82;
+      --accent: #9cc9b8;
+      --accent-text: #10201b;
+      --focus: #9ec1ff;
+      --warn-bg: #3a2f1a;
+      --warn-border: #e0b866;
+    }
+  }
+  /* Low-stimulation mode: near-monochrome, no shadows, more space, bigger text. */
+  :root[data-theme="low"] {
+    --bg: #ecebe6;
+    --surface: #ecebe6;
+    --text: #222220;
+    --muted: #3f3f3b;
+    --border: #6d6c66;
+    --accent: #3f3f3b;
+    --accent-text: #ffffff;
+    --focus: #000000;
+    --warn-bg: #ecebe6;
+    --warn-border: #3f3f3b;
+    --space: 1.75rem;
+    --line: 1.8;
+  }
+  :root[data-theme="low"] body { font-size: 1.2rem; }
+  :root[data-theme="low"] .card { box-shadow: none; }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 1.125rem;
+    line-height: var(--line);
+  }
+  main, header, footer { max-width: 44rem; margin: 0 auto; padding: 0 16px; }
+  h1 { font-size: 2rem; margin: 1.5rem 0 0.5rem; }
+  h2 { font-size: 1.5rem; margin-top: 2.5rem; }
+  h3 { font-size: 1.2rem; margin: 0 0 0.5rem; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  :root[data-theme="low"] a, :root[data-theme="low"] a:visited { color: var(--text); }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+  .skip { position: absolute; left: -999px; }
+  .skip:focus { left: 16px; top: 8px; background: var(--surface); padding: 0.5rem 1rem; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--space);
+    margin: var(--space) 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .note { color: var(--muted); }
+  .warn {
+    background: var(--warn-bg);
+    border: 2px solid var(--warn-border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+  }
+  fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+  legend { font-weight: 600; padding: 0; margin-bottom: 0.5rem; font-size: 1.15rem; }
+  .step { color: var(--muted); font-size: 1rem; margin: 0 0 0.25rem; }
+
+  input[type="range"] {
+    width: 100%;
+    height: 2.75rem;          /* 44px target */
+    accent-color: var(--accent);
+    margin: 0.25rem 0;
+  }
+  .scale-ends { display: flex; justify-content: space-between; gap: 1rem; color: var(--muted); font-size: 1rem; }
+  output { font-weight: 600; display: block; }
+
+  .choices { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .choices label {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    min-height: 2.75rem; padding: 0.4rem 0.9rem;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    cursor: pointer; background: var(--bg);
+  }
+  .choices input { width: 1.25rem; height: 1.25rem; accent-color: var(--accent); margin: 0; }
+
+  button, .button {
+    font: inherit; min-height: 2.75rem; padding: 0.6rem 1.25rem;
+    border-radius: var(--radius); border: 2px solid var(--accent);
+    background: var(--accent); color: var(--accent-text); cursor: pointer;
+  }
+  button.secondary { background: transparent; color: var(--text); border-color: var(--border); }
+  input[type="number"], input[type="url"] {
+    font: inherit; min-height: 2.75rem; padding: 0.4rem 0.6rem; width: 6rem;
+    border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);
+  }
+  input[type="url"] { width: 100%; }
+  details > summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; }
+  .result-score { font-size: 1.25rem; font-weight: 700; }
+  ol.results { padding-left: 0; list-style: none; }
+  .factor-list li { margin-bottom: 0.5rem; }
+  .toolbar { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+  .hidden { display: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#questions">Skip to the questions</a>
+
+<header>
+  <div class="toolbar">
+    <button type="button" id="theme-toggle" class="secondary" aria-pressed="false">
+      Low-stimulation mode: off
+    </button>
+  </div>
+  <h1>Job Habitat</h1>
+  <p>Find jobs where the usual work environment fits what you can handle, and that match what you like to do.</p>
+</header>
+
+<main>
+  <section class="card" aria-labelledby="about-heading">
+    <h2 id="about-heading" style="margin-top:0">Before you start</h2>
+    <ul>
+      <li><strong>This is not a test or a diagnosis.</strong> It is a starting point for exploring careers.</li>
+      <li><strong>We do not ask for your name.</strong> Your answers are not saved.</li>
+      <li>There is <strong>no time limit</strong>. You can change any answer.</li>
+      <li><strong>Preview build</strong> (4f5660d). Everything runs in your browser; your answers are never sent anywhere. The job numbers are made-up placeholders.</li>
+      <li>There are 14 short questions. Each one has a "Why we ask" note.</li>
+    </ul>
+  </section>
+
+  <div id="status" role="status" aria-live="polite"></div>
+  <div id="error" role="alert"></div>
+
+  <form id="match-form" class="hidden" novalidate>
+    <h2 id="questions" tabindex="-1">Part 1: Your work environment</h2>
+    <p class="note">Move each slider to show how much you can handle on a usual workday. Then say how much it matters to you.</p>
+    <div id="env-questions"></div>
+
+    <h2>Part 2: What you like to do</h2>
+    <p class="note">
+      Rate how much you like each kind of work. If you have taken the free
+      <a href="https://www.mynextmove.org/explore/ip" target="_blank" rel="noopener">O*NET Interest Profiler on My Next Move</a>
+      (opens in a new tab), you can type your scores instead.
+    </p>
+    <div class="card">
+      <fieldset>
+        <legend>How do you want to give your interests?</legend>
+        <div class="choices">
+          <label><input type="radio" name="interest-mode" value="self" checked> Rate myself (1 to 5)</label>
+          <label><input type="radio" name="interest-mode" value="profiler"> Type Interest Profiler scores (0 to 40)</label>
+        </div>
+      </fieldset>
+    </div>
+    <div id="interest-questions"></div>
+
+    <div class="card">
+      <button type="submit">Show job ideas</button>
+    </div>
+  </form>
+
+  <section id="results-section" class="hidden" aria-labelledby="results-heading">
+    <h2 id="results-heading" tabindex="-1">Job ideas for you</h2>
+    <div id="data-notice"></div>
+    <p class="note">
+      Higher scores mean a closer fit with your answers. Open "Why this score?" to see what helped and what did not.
+      Many workplaces can be changed with accommodations. The
+      <a href="https://askjan.org/" target="_blank" rel="noopener">Job Accommodation Network (askjan.org)</a>
+      (opens in a new tab) has free, private advice.
+    </p>
+    <ol class="results" id="results"></ol>
+    <p><button type="button" class="secondary" id="back-to-questions">Change my answers</button></p>
+  </section>
+</main>
+
+<footer>
+  <hr>
+  <p class="note" id="disclaimer">
+    Job Habitat is a starting point for career exploration. It does not diagnose anything, it is not a
+    personality test, and it cannot tell you what job you should do.
+  </p>
+  <p class="note">
+    Data credit (when real data is loaded): built with O*NET data from the O*NET 31.0 Database, U.S. Department of
+    Labor, Employment and Training Administration (USDOL/ETA), used under the
+    <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0 license</a>. Job Habitat selected,
+    rescaled, and combined these data. O*NET is a trademark of USDOL/ETA.
+    <!-- VERIFY final wording against https://www.onetcenter.org/license_db.html before launch. -->
+  </p>
+</footer>
+
+<script>
+window.JH_DATA = {"dimensions": {"dimensions": [{"key": "noise", "label": "Noise", "question": "How much noise can you handle in a usual workday?", "low": "Very quiet only", "high": "Loud is fine", "why": "Noise is one of the most common sensory stressors at work, and jobs differ a lot in how loud they are.", "accommodations": ["Noise-cancelling headphones or earplugs", "A quieter desk or room, away from busy areas"]}, {"key": "lighting", "label": "Lighting", "question": "How much very bright or poor lighting can you handle?", "low": "Soft, steady light only", "high": "Any lighting is fine", "why": "Harsh, flickering, or dim light can be tiring or painful for some people. Some jobs have much more of it than others.", "accommodations": ["Natural light or adjustable lamps instead of overhead lights", "Tinted glasses, screen filters, or light covers"]}, {"key": "social_contact", "label": "Contact with people", "question": "How much contact with other people do you want at work?", "low": "Very little", "high": "A lot is fine", "why": "Jobs differ in how much of the day is spent talking or working with other people.", "accommodations": ["Written instructions and email or chat instead of drop-in talks", "Scheduled check-ins instead of open-ended meetings"]}, {"key": "customer_contact", "label": "Customers and the public", "question": "How much work with customers or the public can you handle?", "low": "None", "high": "A lot is fine", "why": "Working with customers or the public can be unpredictable. Some jobs have a lot of it, some have none.", "accommodations": ["Scripts or templates for common customer situations", "Role adjustments, such as trading some public-facing duties for back-office tasks"]}, {"key": "conflict", "label": "Conflict", "question": "How often can you handle conflict or upset people at work?", "low": "Almost never", "high": "Often is fine", "why": "Some jobs often involve disagreements or upset people. Knowing your comfort level helps us avoid poor fits.", "accommodations": ["A clear way to hand off difficult situations to a supervisor", "A quiet place to take a short break after a hard conversation"]}, {"key": "time_pressure", "label": "Time pressure", "question": "How much time pressure can you handle?", "low": "Very little", "high": "Tight deadlines are fine", "why": "Some jobs have constant deadlines or rush periods. Others let you work at a steady pace.", "accommodations": ["Written task lists with clear priorities", "Advance notice of deadlines, and extra time where possible"]}, {"key": "schedule_unpredictability", "label": "Changing schedule", "question": "How much can your work schedule change from week to week?", "low": "It must stay the same", "high": "Changes are fine", "why": "Some jobs have the same hours every week. Others change with demand, weather, or season.", "accommodations": ["The same shifts each week", "Advance notice of any schedule change"]}, {"key": "outdoor", "label": "Working outdoors", "question": "How much work outdoors, in all weather, can you handle?", "low": "Indoors only", "high": "Outdoors is fine", "why": "Some jobs are mostly indoors in a controlled space. Others are outside in heat, cold, or rain.", "accommodations": ["Weather-appropriate gear provided by the employer", "Flexible breaks indoors"]}], "tolerance_scale": {"min": 1, "max": 5}, "weight_scale": {"min": 0, "max": 3, "default": 1}, "riasec": [{"key": "realistic", "label": "Realistic", "plain": "Hands-on work with tools, machines, plants, or animals"}, {"key": "investigative", "label": "Investigative", "plain": "Figuring things out, research, science"}, {"key": "artistic", "label": "Artistic", "plain": "Creating, designing, writing, music"}, {"key": "social", "label": "Social", "plain": "Helping, teaching, or caring for people"}, {"key": "enterprising", "label": "Enterprising", "plain": "Leading, persuading, selling, starting things"}, {"key": "conventional", "label": "Conventional", "plain": "Organizing, records, data, clear procedures"}], "accommodations_url": "https://askjan.org/", "disclaimer": "Job Habitat is a starting point for career exploration. It does not diagnose anything, it is not a personality test, and it cannot tell you what job you should do. Real workplaces vary, and many can be adjusted with accommodations."}, "occupations": [{"code": "SYN-0001", "title": "Librarian", "demands": {"noise": 2.0, "lighting": 1.5, "social_contact": 3.5, "customer_contact": 3.8, "conflict": 2.0, "time_pressure": 2.5, "schedule_unpredictability": 1.5, "outdoor": 1.0}, "riasec": {"realistic": 1.5, "investigative": 3.5, "artistic": 3.5, "social": 4.5, "enterprising": 2.5, "conventional": 4.5}}, {"code": "SYN-0002", "title": "Software Developer", "demands": {"noise": 1.8, "lighting": 1.2, "social_contact": 3.6, "customer_contact": 2.0, "conflict": 2.0, "time_pressure": 3.5, "schedule_unpredictability": 1.6, "outdoor": 1.0}, "riasec": {"realistic": 2.0, "investigative": 5.5, "artistic": 3.0, "social": 2.0, "enterprising": 3.0, "conventional": 4.5}}, {"code": "SYN-0003", "title": "Medical and Clinical Laboratory Technician", "demands": {"noise": 2.8, "lighting": 1.5, "social_contact": 3.2, "customer_contact": 1.6, "conflict": 1.8, "time_pressure": 3.8, "schedule_unpredictability": 2.0, "outdoor": 1.0}, "riasec": {"realistic": 3.8, "investigative": 5.6, "artistic": 1.8, "social": 3.0, "enterprising": 1.8, "conventional": 4.5}}, {"code": "SYN-0004", "title": "Landscaping and Groundskeeping Worker", "demands": {"noise": 4.0, "lighting": 2.0, "social_contact": 3.0, "customer_contact": 2.2, "conflict": 1.6, "time_pressure": 3.0, "schedule_unpredictability": 2.8, "outdoor": 4.8}, "riasec": {"realistic": 6.2, "investigative": 1.5, "artistic": 2.0, "social": 1.8, "enterprising": 1.8, "conventional": 2.5}}, {"code": "SYN-0005", "title": "Registered Nurse", "demands": {"noise": 3.2, "lighting": 1.8, "social_contact": 4.9, "customer_contact": 4.6, "conflict": 3.6, "time_pressure": 4.2, "schedule_unpredictability": 3.4, "outdoor": 1.2}, "riasec": {"realistic": 2.5, "investigative": 4.5, "artistic": 2.0, "social": 6.2, "enterprising": 3.0, "conventional": 3.5}}, {"code": "SYN-0006", "title": "Graphic Designer", "demands": {"noise": 1.9, "lighting": 1.6, "social_contact": 3.8, "customer_contact": 3.2, "conflict": 2.2, "time_pressure": 3.9, "schedule_unpredictability": 1.9, "outdoor": 1.0}, "riasec": {"realistic": 2.0, "investigative": 2.5, "artistic": 6.5, "social": 2.0, "enterprising": 3.5, "conventional": 3.0}}, {"code": "SYN-0007", "title": "Accountant", "demands": {"noise": 1.6, "lighting": 1.1, "social_contact": 3.9, "customer_contact": 3.0, "conflict": 2.2, "time_pressure": 3.9, "schedule_unpredictability": 1.8, "outdoor": 1.0}, "riasec": {"realistic": 1.5, "investigative": 3.8, "artistic": 1.5, "social": 2.0, "enterprising": 4.0, "conventional": 6.5}}, {"code": "SYN-0008", "title": "Retail Salesperson", "demands": {"noise": 3.0, "lighting": 1.5, "social_contact": 4.8, "customer_contact": 4.9, "conflict": 3.4, "time_pressure": 3.2, "schedule_unpredictability": 3.0, "outdoor": 1.2}, "riasec": {"realistic": 2.0, "investigative": 1.5, "artistic": 2.0, "social": 4.0, "enterprising": 5.5, "conventional": 3.5}}, {"code": "SYN-0009", "title": "Veterinary Technician", "demands": {"noise": 3.6, "lighting": 1.6, "social_contact": 4.2, "customer_contact": 3.8, "conflict": 2.8, "time_pressure": 4.0, "schedule_unpredictability": 2.6, "outdoor": 1.6}, "riasec": {"realistic": 4.6, "investigative": 4.4, "artistic": 1.8, "social": 4.6, "enterprising": 1.8, "conventional": 3.4}}, {"code": "SYN-0010", "title": "Archivist", "demands": {"noise": 1.5, "lighting": 1.4, "social_contact": 3.0, "customer_contact": 2.4, "conflict": 1.5, "time_pressure": 2.4, "schedule_unpredictability": 1.3, "outdoor": 1.0}, "riasec": {"realistic": 2.0, "investigative": 4.4, "artistic": 4.2, "social": 2.6, "enterprising": 2.0, "conventional": 5.0}}, {"code": "SYN-0011", "title": "Zoologist and Wildlife Biologist", "demands": {"noise": 2.4, "lighting": 2.2, "social_contact": 3.4, "customer_contact": 1.8, "conflict": 1.8, "time_pressure": 2.8, "schedule_unpredictability": 2.9, "outdoor": 4.2}, "riasec": {"realistic": 5.0, "investigative": 6.4, "artistic": 2.5, "social": 2.0, "enterprising": 2.0, "conventional": 3.0}}, {"code": "SYN-0012", "title": "Electrician", "demands": {"noise": 4.2, "lighting": 2.6, "social_contact": 3.8, "customer_contact": 3.2, "conflict": 2.2, "time_pressure": 3.6, "schedule_unpredictability": 2.6, "outdoor": 3.0}, "riasec": {"realistic": 6.4, "investigative": 3.5, "artistic": 1.5, "social": 1.8, "enterprising": 2.6, "conventional": 3.8}}, {"code": "SYN-0013", "title": "Data Entry Keyer", "demands": {"noise": 2.0, "lighting": 1.2, "social_contact": 2.8, "customer_contact": 1.4, "conflict": 1.4, "time_pressure": 3.6, "schedule_unpredictability": 1.4, "outdoor": 1.0}, "riasec": {"realistic": 2.0, "investigative": 1.5, "artistic": 1.2, "social": 1.5, "enterprising": 2.0, "conventional": 6.6}}], "synthetic": true, "synthetic_notice": "These results use SYNTHETIC placeholder numbers for testing, not real O*NET data. Do not use them to make decisions."};
+// In-browser port of app/scoring.py and the /dimensions and /match routes of app/main.py.
+// Data (questions, occupations, notices) is generated from the Python code at build time.
+// Expects a global JH_DATA. Exposes JH_ENGINE.
+(function (root) {
+  "use strict";
+  var D = root.JH_DATA;
+  var DIM_KEYS = D.dimensions.dimensions.map(function (d) { return d.key; });
+  var RIASEC_KEYS = D.dimensions.riasec.map(function (r) { return r.key; });
+  var DIM_BY_KEY = {}, DIM_ORDER = {};
+  D.dimensions.dimensions.forEach(function (d, i) { DIM_BY_KEY[d.key] = d; DIM_ORDER[d.key] = i; });
+
+  // Python's round(x, n): round half to even on the exact binary value.
+  function pyRound(x, n) {
+    var m = Math.pow(10, n);
+    var y = x * m;
+    var f = Math.floor(y);
+    var diff = y - f;
+    var r;
+    if (diff > 0.5) r = f + 1;
+    else if (diff < 0.5) r = f;
+    else r = (f % 2 === 0) ? f : f + 1;
+    var out = r / m;
+    // Guard against x * m picking up error: fall back to toFixed when they disagree by a step.
+    var alt = Number(x.toFixed(n));
+    return Math.abs(out - alt) > 0.5 / m ? alt : out;
+  }
+
+  function suitability(t, o, k) {
+    if (o <= t) return 1.0;
+    return Math.max(0.0, 1.0 - (o - t) / k);
+  }
+
+  function wgm(values, weights) {
+    var total = weights.reduce(function (a, b) { return a + b; }, 0);
+    if (total === 0) return 1.0;
+    var logSum = 0.0;
+    for (var i = 0; i < values.length; i++) {
+      if (weights[i] === 0) continue;
+      if (values[i] <= 0) return 0.0;
+      logSum += weights[i] * Math.log(values[i]);
+    }
+    return Math.exp(logSum / total);
+  }
+
+  function cosine(u, v) {
+    var dot = 0, nu = 0, nv = 0;
+    for (var i = 0; i < u.length; i++) { dot += u[i] * v[i]; nu += u[i] * u[i]; nv += v[i] * v[i]; }
+    nu = Math.sqrt(nu); nv = Math.sqrt(nv);
+    if (nu === 0 || nv === 0) return 0.0;
+    return Math.max(-1.0, Math.min(1.0, dot / (nu * nv)));
+  }
+
+  function vec(obj) { return RIASEC_KEYS.map(function (k) { return Number(obj[k]); }); }
+
+  function fmt1(x) { return pyRound(x, 1).toFixed(1); }
+
+  function note(t, o, w, s) {
+    if (w === 0) return "You said this does not matter to you, so it was not counted.";
+    var level = "This job's usual level is about " + fmt1(o) + " out of 5; you said " + t + " out of 5.";
+    if (s >= 1.0) return "Fits. " + level;
+    if (s === 0.0) {
+      return "Dealbreaker: far above your comfort level. " + level + " " +
+        "This limits the whole environment score to 0, unless it can be changed.";
+    }
+    return "Above your comfort level. " + level;
+  }
+
+  function cmpTuple(a, b) {
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] < b[i]) return -1;
+      if (a[i] > b[i]) return 1;
+    }
+    return 0;
+  }
+
+  function scoreOccupation(occ, prefs, weights, interests, p) {
+    var perDim = {}, vals = [], wts = [];
+    DIM_KEYS.forEach(function (key) {
+      var s = suitability(prefs[key], occ.demands[key], p.k);
+      perDim[key] = s; vals.push(s); wts.push(Number(weights[key]));
+    });
+    var hsi = wgm(vals, wts);
+    var congruence = Math.max(0.0, cosine(vec(interests), vec(occ.riasec)));
+    var score = Math.pow(hsi, p.a) * Math.pow(congruence, p.b);
+
+    var factors = DIM_KEYS.map(function (key) {
+      var dim = DIM_BY_KEY[key], s = perDim[key];
+      var t = Math.trunc(prefs[key]), w = Number(weights[key]), o = Number(occ.demands[key]);
+      return {
+        dimension: key, label: dim.label, tolerance: t, demand: pyRound(o, 2), weight: w,
+        suitability: pyRound(s, 3), dealbreaker: (w > 0 && s === 0.0), note: note(t, o, w, s),
+        accommodations: (w > 0 && s < 1) ? dim.accommodations.slice() : []
+      };
+    });
+    factors.sort(function (a, b) {
+      return cmpTuple(
+        [a.weight > 0 ? 0 : 1, a.suitability, -a.weight, -(a.demand - a.tolerance), DIM_ORDER[a.dimension]],
+        [b.weight > 0 ? 0 : 1, b.suitability, -b.weight, -(b.demand - b.tolerance), DIM_ORDER[b.dimension]]);
+    });
+
+    var base = wgm(DIM_KEYS.map(function (k) { return perDim[k]; }), wts);
+    var acc = [];
+    DIM_KEYS.forEach(function (key, i) {
+      if (wts[i] === 0 || perDim[key] >= 1.0) return;
+      var fixed = DIM_KEYS.map(function (k, j) { return j === i ? 1.0 : perDim[k]; });
+      acc.push({
+        dimension: key, label: DIM_BY_KEY[key].label,
+        potential_gain: pyRound(wgm(fixed, wts) - base, 4),
+        suggestions: DIM_BY_KEY[key].accommodations.slice()
+      });
+    });
+    acc.sort(function (a, b) {
+      return cmpTuple([-a.potential_gain, DIM_ORDER[a.dimension]], [-b.potential_gain, DIM_ORDER[b.dimension]]);
+    });
+
+    var deal = factors.filter(function (f) { return f.dealbreaker; }).map(function (f) { return f.label; });
+    var concerns = factors.filter(function (f) { return f.weight > 0 && f.suitability > 0 && f.suitability < 1; })
+      .map(function (f) { return f.label; });
+    var env = deal.length ? "Possible dealbreaker: " + deal.join(", ") + "."
+      : concerns.length ? "Possible concerns: " + concerns.slice(0, 3).join(", ") + "."
+      : "No work-environment concerns based on your answers.";
+    var interest = congruence >= 0.9 ? "Strong match with your interests."
+      : congruence >= 0.75 ? "Some match with your interests." : "Weaker match with your interests.";
+
+    return {
+      code: occ.code, title: occ.title, score: pyRound(score, 4), hsi: pyRound(hsi, 4),
+      congruence: pyRound(congruence, 4), factors: factors,
+      dealbreakers: factors.filter(function (f) { return f.dealbreaker; }).map(function (f) { return f.dimension; }),
+      accommodations: acc, summary: env + " " + interest
+    };
+  }
+
+  // Same checks as the pydantic models; throws on invalid input (the API would answer 422).
+  function validate(body) {
+    var prefs = {}, weights = {}, interests = {};
+    var p = body.preferences || {}, w = body.weights || {}, it = body.interests || {};
+    DIM_KEYS.forEach(function (k) {
+      var t = p[k] === undefined ? 3 : p[k];
+      if (!Number.isInteger(t) || t < 1 || t > 5) throw new Error("bad preference " + k);
+      prefs[k] = t;
+      var x = w[k] === undefined ? 1.0 : Number(w[k]);
+      if (!isFinite(x) || x < 0 || x > 3) throw new Error("bad weight " + k);
+      weights[k] = x;
+    });
+    RIASEC_KEYS.forEach(function (k) {
+      var x = Number(it[k]);
+      if (it[k] === undefined || !isFinite(x) || x < 0 || x > 100) throw new Error("bad interest " + k);
+      interests[k] = x;
+    });
+    if (vec(interests).reduce(function (a, b) { return a + b; }, 0) <= 0) throw new Error("all interests 0");
+    var topN = body.top_n === undefined ? 10 : body.top_n;
+    if (!Number.isInteger(topN) || topN < 1 || topN > 50) throw new Error("bad top_n");
+    return { preferences: prefs, weights: weights, interests: interests, top_n: topN };
+  }
+
+  function match(body) {
+    var req = validate(body);
+    var p = { k: 3.0, a: 1.0, b: 1.0 };
+    var results = D.occupations.map(function (o) {
+      return scoreOccupation(o, req.preferences, req.weights, req.interests, p);
+    });
+    results.sort(function (a, b) {
+      return cmpTuple([-a.score, -a.hsi, -a.congruence, a.title], [-b.score, -b.hsi, -b.congruence, b.title]);
+    });
+    return {
+      results: results.slice(0, req.top_n),
+      synthetic_data: D.synthetic,
+      data_notice: D.synthetic ? D.synthetic_notice : null,
+      disclaimer: D.dimensions.disclaimer,
+      accommodations_url: D.dimensions.accommodations_url
+    };
+  }
+
+  // Stands in for fetch() against the API routes the page uses.
+  function localFetch(url, opts) {
+    var path = url.replace(/^.*(\/[a-z]+)$/, "$1");
+    var res;
+    try {
+      if (path === "/dimensions") res = { ok: true, status: 200, data: D.dimensions };
+      else if (path === "/match") res = { ok: true, status: 200, data: match(JSON.parse(opts.body)) };
+      else res = { ok: false, status: 404, data: null };
+    } catch (e) {
+      res = { ok: false, status: 422, data: null };
+    }
+    return Promise.resolve({ ok: res.ok, status: res.status, json: function () { return Promise.resolve(res.data); } });
+  }
+
+  root.JH_ENGINE = { match: match, localFetch: localFetch };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  "use strict";
+
+  // ---- Settings -----------------------------------------------------------
+  // API base: ?api=... wins; else same origin when served by the API at /ui/;
+  // else a local dev server. Nothing is stored in the browser.
+  var params = new URLSearchParams(window.location.search);
+  var servedByApi = window.location.protocol.indexOf("http") === 0 &&
+    window.location.pathname.indexOf("/ui") === 0;
+  var API = params.get("api") || (servedByApi ? window.location.origin : "http://localhost:8000");
+  API = API.replace(/\/+$/, "");
+
+  var TOLERANCE_WORDS = { 1: "Very little", 2: "A little", 3: "Some", 4: "Quite a lot", 5: "A lot" };
+  var LIKE_WORDS = { 1: "Not for me", 2: "A little", 3: "Somewhat", 4: "I like this", 5: "I love this" };
+  var IMPORTANCE = [
+    { value: "0", text: "Does not matter to me" },
+    { value: "1", text: "Matters some" },
+    { value: "2", text: "Matters a lot" }
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { dims: [], riasec: [] };
+
+  // Small DOM helper. Always uses textContent, never innerHTML, for data.
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === "text") node.textContent = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c) node.appendChild(c); });
+    return node;
+  }
+
+  // ---- Theme --------------------------------------------------------------
+  var themeBtn = $("theme-toggle");
+  themeBtn.addEventListener("click", function () {
+    var on = document.documentElement.getAttribute("data-theme") !== "low";
+    if (on) document.documentElement.setAttribute("data-theme", "low");
+    else document.documentElement.removeAttribute("data-theme");
+    themeBtn.setAttribute("aria-pressed", String(on));
+    themeBtn.textContent = "Low-stimulation mode: " + (on ? "on" : "off");
+  });
+
+  // ---- Building the questions ---------------------------------------------
+  function slider(id, labelText, words, lowText, highText, min, max, value) {
+    var out = el("output", { id: id + "-out", "for": id });
+    var input = el("input", {
+      type: "range", id: id, name: id, min: String(min), max: String(max), step: "1",
+      value: String(value), "aria-describedby": id + "-ends"
+    });
+    function sync() {
+      var v = Number(input.value);
+      var text = v + " out of " + max + ": " + words[v];
+      out.textContent = text;
+      input.setAttribute("aria-valuetext", text);
+    }
+    input.addEventListener("input", sync);
+    sync();
+    var ends = el("div", { "class": "scale-ends", id: id + "-ends" }, [
+      el("span", { text: "1 = " + lowText }), el("span", { text: max + " = " + highText })
+    ]);
+    return el("div", {}, [el("label", { "for": id, text: labelText }), input, out, ends]);
+  }
+
+  function buildEnvironment(total) {
+    var host = $("env-questions");
+    host.textContent = "";
+    state.dims.forEach(function (d, i) {
+      var importance = el("fieldset", {}, [el("legend", { text: "How much does this matter to you?" })]);
+      var choices = el("div", { "class": "choices" });
+      IMPORTANCE.forEach(function (opt) {
+        var input = el("input", { type: "radio", name: "w-" + d.key, value: opt.value });
+        if (opt.value === "1") input.checked = true;
+        choices.appendChild(el("label", {}, [input, document.createTextNode(opt.text)]));
+      });
+      importance.appendChild(choices);
+
+      var why = el("details", {}, [el("summary", { text: "Why we ask" }), el("p", { text: d.why })]);
+      var section = el("section", { "class": "card", "aria-labelledby": "q-" + d.key }, [
+        el("p", { "class": "step", text: "Question " + (i + 1) + " of " + total }),
+        el("h3", { id: "q-" + d.key, text: d.question }),
+        slider("t-" + d.key, d.label + " you can handle", TOLERANCE_WORDS, d.low, d.high, 1, 5, 3),
+        why,
+        importance
+      ]);
+      host.appendChild(section);
+    });
+  }
+
+  function buildInterests(total) {
+    var host = $("interest-questions");
+    host.textContent = "";
+    var offset = state.dims.length;
+    state.riasec.forEach(function (r, i) {
+      var self = slider("i-" + r.key, r.label + ": how much do you like this?", LIKE_WORDS, "Not for me", "I love this", 1, 5, 3);
+      self.setAttribute("data-mode", "self");
+      var prof = el("div", { "data-mode": "profiler", "class": "hidden" }, [
+        el("label", { "for": "p-" + r.key, text: r.label + " score from the Interest Profiler (0 to 40)" }),
+        el("br", {}),
+        el("input", { type: "number", id: "p-" + r.key, min: "0", max: "40", step: "1", inputmode: "numeric" })
+      ]);
+      host.appendChild(el("section", { "class": "card", "aria-labelledby": "r-" + r.key }, [
+        el("p", { "class": "step", text: "Question " + (offset + i + 1) + " of " + total }),
+        el("h3", { id: "r-" + r.key, text: r.label + ": " + r.plain }),
+        self,
+        prof
+      ]));
+    });
+  }
+
+  function interestMode() {
+    return document.querySelector('input[name="interest-mode"]:checked').value;
+  }
+
+  document.querySelectorAll('input[name="interest-mode"]').forEach(function (radio) {
+    radio.addEventListener("change", function () {
+      var mode = interestMode();
+      document.querySelectorAll("[data-mode]").forEach(function (node) {
+        node.classList.toggle("hidden", node.getAttribute("data-mode") !== mode);
+      });
+    });
+  });
+
+  // ---- Talking to the API ---------------------------------------------------
+  function showError(message) {
+    var box = $("error");
+    box.textContent = "";
+    if (message) box.appendChild(el("p", { "class": "warn", text: message }));
+  }
+
+  function loadQuestions() {
+    $("status").textContent = "Loading the questions...";
+    showError("");
+    JH_ENGINE.localFetch(API + "/dimensions")
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (data) {
+        state.dims = data.dimensions;
+        state.riasec = data.riasec;
+        var total = state.dims.length + state.riasec.length;
+        buildEnvironment(total);
+        buildInterests(total);
+        $("match-form").classList.remove("hidden");
+        $("status").textContent = "The questions are ready.";
+      })
+      .catch(function () {
+        $("status").textContent = "";
+        showError("We could not reach the Job Habitat server at " + API +
+          ". If you are running it yourself, start it and reload this page. " +
+          "You can change the address under \"Settings for developers\" at the bottom of the page.");
+      });
+  }
+
+  function collect() {
+    var preferences = {}, weights = {}, interests = {};
+    state.dims.forEach(function (d) {
+      preferences[d.key] = Number($("t-" + d.key).value);
+      weights[d.key] = Number(document.querySelector('input[name="w-' + d.key + '"]:checked').value);
+    });
+    var mode = interestMode();
+    var problems = [];
+    state.riasec.forEach(function (r) {
+      if (mode === "self") {
+        interests[r.key] = Number($("i-" + r.key).value);
+      } else {
+        var raw = $("p-" + r.key).value.trim();
+        var n = Number(raw);
+        if (raw === "" || !isFinite(n) || n < 0 || n > 40) problems.push(r.label);
+        interests[r.key] = n;
+      }
+    });
+    return { body: { preferences: preferences, weights: weights, interests: interests, top_n: 10 }, problems: problems };
+  }
+
+  function pct(x) { return Math.round(x * 100); }
+
+  function fitWords(score) {
+    if (score >= 0.75) return "Close fit";
+    if (score >= 0.5) return "Partial fit";
+    if (score > 0) return "Weaker fit";
+    return "Poor fit as described";
+  }
+
+  function renderResults(data) {
+    var list = $("results");
+    list.textContent = "";
+    var notice = $("data-notice");
+    notice.textContent = "";
+    if (data.data_notice) notice.appendChild(el("p", { "class": "warn", text: data.data_notice }));
+
+    data.results.forEach(function (r, i) {
+      var factors = el("ul", { "class": "factor-list" });
+      r.factors.forEach(function (f) {
+        factors.appendChild(el("li", {}, [el("strong", { text: f.label + ": " }), document.createTextNode(f.note)]));
+      });
+      var interestLine = el("li", {}, [
+        el("strong", { text: "Interests: " }),
+        document.createTextNode("Match with your interests is " + pct(r.congruence) + " out of 100.")
+      ]);
+      factors.appendChild(interestLine);
+
+      var accBlock = null;
+      if (r.accommodations.length) {
+        var accList = el("ul", {});
+        r.accommodations.slice(0, 3).forEach(function (a) {
+          accList.appendChild(el("li", {}, [
+            el("strong", { text: a.label + ": " }),
+            document.createTextNode(a.suggestions.join("; ") + ".")
+          ]));
+        });
+        accBlock = el("div", {}, [
+          el("h4", { text: "Ideas that could help most" }),
+          accList,
+          el("p", {}, [
+            document.createTextNode("More ideas: "),
+            el("a", { href: data.accommodations_url, target: "_blank", rel: "noopener",
+              text: "Job Accommodation Network (opens in a new tab)" })
+          ])
+        ]);
+      }
+
+      var dealbreaker = null;
+      if (r.dealbreakers.length) {
+        dealbreaker = el("p", { "class": "warn", text: "Possible dealbreaker. Open \"Why this score?\" to see which part does not fit, and whether an accommodation could change it." });
+      }
+
+      list.appendChild(el("li", { "class": "card" }, [
+        el("h3", { text: (i + 1) + ". " + r.title }),
+        el("p", { "class": "result-score", text: fitWords(r.score) + ": " + pct(r.score) + " out of 100" }),
+        el("p", { text: r.summary }),
+        dealbreaker,
+        el("details", {}, [el("summary", { text: "Why this score?" }), factors, accBlock])
+      ]));
+    });
+  }
+
+  $("match-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var c = collect();
+    if (c.problems.length) {
+      showError("Please type a number from 0 to 40 for: " + c.problems.join(", ") + ".");
+      return;
+    }
+    if (Object.keys(c.body.interests).every(function (k) { return c.body.interests[k] === 0; })) {
+      showError("Please give at least one interest a score above 0.");
+      return;
+    }
+    showError("");
+    $("status").textContent = "Finding job ideas...";
+    JH_ENGINE.localFetch(API + "/match", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(c.body)
+    })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (data) {
+        renderResults(data);
+        $("results-section").classList.remove("hidden");
+        $("status").textContent = "Showing " + data.results.length + " job ideas.";
+        $("results-heading").focus();
+      })
+      .catch(function () {
+        $("status").textContent = "";
+        showError("Something went wrong while finding job ideas. Your answers are still here. Please try again.");
+      });
+  });
+
+  $("back-to-questions").addEventListener("click", function () { $("questions").focus(); });
+
+  loadQuestions();
+})();
+</script>
+</body>
+</html>
